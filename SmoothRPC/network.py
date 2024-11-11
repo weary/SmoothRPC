@@ -8,27 +8,25 @@ _log = logging.getLogger(__name__)
 
 
 class AsyncNetwork(ABC):
-    @abstractmethod
-    async def send_pyobj(self, pyobj: object) -> None: ...
+    """Network abstract base class."""
 
     @abstractmethod
-    async def recv_pyobj(self) -> object: ...
+    async def send_pyobj(self, pyobj: object) -> None:
+        """Send a python object over the network."""
 
     @abstractmethod
-    def shutdown(self) -> None: ...
+    async def recv_pyobj(self) -> object:
+        """Receive a python object over the network, block if nothing ready."""
 
 
-class AsyncZmqNetwork(AsyncNetwork):
-    def __init__(self, address: str, is_server: bool) -> None:
+class AsyncZmqNetworkHost(AsyncNetwork):
+    """Host network implementation using ZeroMQ."""
+
+    def __init__(self, address: str) -> None:
         context = zmq.asyncio.Context()
-        if is_server:
-            _log.info(f"Listening on {address}…")
-            self.socket = context.socket(zmq.REP)
-            self.socket.bind(address)
-        else:
-            _log.info(f"Connecting to {address} server…")
-            self.socket = context.socket(zmq.REQ)
-            self.socket.connect(address)
+        _log.info(f"Listening on {address}…")
+        self.socket = context.socket(zmq.REP)
+        self.socket.bind(address)
 
     async def send_pyobj(self, pyobj: object) -> None:
         await self.socket.send_pyobj(pyobj)
@@ -36,5 +34,18 @@ class AsyncZmqNetwork(AsyncNetwork):
     async def recv_pyobj(self) -> object:
         return await self.socket.recv_pyobj()
 
-    def shutdown(self) -> None:
-        self.socket.close()
+
+class AsyncZmqNetworkClient(AsyncNetwork):
+    """Client network implementation using ZeroMQ."""
+
+    def __init__(self, address: str) -> None:
+        context = zmq.asyncio.Context()
+        _log.info(f"Connecting to {address}…")
+        self.socket = context.socket(zmq.REQ)
+        self.socket.connect(address)
+
+    async def send_pyobj(self, pyobj: object) -> None:
+        await self.socket.send_pyobj(pyobj)
+
+    async def recv_pyobj(self) -> object:
+        return await self.socket.recv_pyobj()

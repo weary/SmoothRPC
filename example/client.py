@@ -1,12 +1,14 @@
 import asyncio
 import logging
 
-from myproject.commands import Commands
+from example.commands import Commands
+from SmoothRPC import init_remote_rpc
 
 
 async def main() -> None:
-    url = "ipc:///tmp/aap"
-    commands = Commands(address=url, is_server=False)
+    address = "ipc:///tmp/aap"
+    commands = Commands()
+    init_remote_rpc(address, commands, api_version=3)
 
     out = await commands.hello()
     print(f"commands.hello() returned {out!r}")
