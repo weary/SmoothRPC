@@ -1,12 +1,14 @@
+"""Main SmoothRPC implementations."""
+
 import inspect
 import logging
 import types
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, ParamSpec, TypeVar, cast
+from typing import NamedTuple, ParamSpec, TypeVar, cast
 
-from SmoothRPC.exceptions import (
+from smooth_rpc.exceptions import (
     RpcApiVersionMismatchError,
     RpcDecoratorError,
     RpcInternalError,
@@ -14,17 +16,19 @@ from SmoothRPC.exceptions import (
     RpcNoSuchApiError,
     RpcProtocolError,
 )
-from SmoothRPC.network import AsyncNetwork
+from smooth_rpc.network import AsyncNetwork
 
 _log = logging.getLogger(__name__)
 
 
-@dataclass
-class VersionRange:
+class VersionRange(NamedTuple):
+    """A closed range."""
+
     min_version: int | None
     max_version: int | None
 
     def __contains__(self, version: int) -> bool:
+        """Return if the given version is in [min_version, max_version]."""
         return (self.min_version is None or self.min_version <= version) and (
             self.max_version is None or version <= self.max_version
         )
@@ -32,18 +36,23 @@ class VersionRange:
 
 @dataclass
 class ApiFunctionSpec:
+    """Function attributes, as stored by 'rpc' decorator."""
+
     name: str | None
     version_range: VersionRange
 
 
 @dataclass
 class ApiCall:
+    """Network object sent from client to host."""
+
     func_name: str
     api_version: int
     args: tuple
     kwargs: dict
 
     def __str__(self) -> str:
+        """Represent this call object as string. Used by tests."""
         return f"{self.func_name}(args={self.args!r}, kwargs={self.kwargs!r}, api_version={self.api_version})"
 
 
@@ -55,7 +64,7 @@ def _create_call_wrapper(
     network: AsyncNetwork, func_name: str, api_version: int, method_self: object, func: Callable[Param, RetType]
 ) -> Callable[Param, RetType]:
     @wraps(func)
-    async def do_call(self, *args, **kwargs) -> RetType:
+    async def do_call(_self: object, *args: tuple, **kwargs: dict) -> RetType:
         call_obj = ApiCall(func_name, api_version, args, kwargs)
         _log.info("Sending RPC call %s", call_obj)
 
@@ -72,7 +81,7 @@ def _create_call_wrapper(
 
 def _create_exception_wrapper(method_self: object, func: Callable[Param, RetType]) -> Callable[Param, RetType]:
     @wraps(func)
-    async def do_throw(self, *_args, **_kwargs) -> RetType:
+    async def do_throw(_self: object, *_args: tuple, **_kwargs: dict) -> RetType:
         raise RpcApiVersionMismatchError("Client API disabled due to api version restriction.")
 
     return types.MethodType(do_throw, method_self)
@@ -86,14 +95,22 @@ def _iterate_functions(command_object: object) -> Generator[tuple[str, str, Vers
                 continue
             if not inspect.iscoroutinefunction(func):
                 raise RpcDecoratorError("Not an async function")
-            assert isinstance(api_spec, ApiFunctionSpec)
+            if not isinstance(api_spec, ApiFunctionSpec):
+                raise RpcDecoratorError("Decorator malfunction")
 
             func_name = api_spec.name or func_object_name
             yield (func_object_name, func_name, api_spec.version_range, func)
 
 
 class SmoothRPCClient:
+    """User of the RPC API."""
+
     def __init__(self, network: AsyncNetwork) -> None:
+        """
+        Create a RPC Client.
+
+        'network' is the carrier network, typically an AsyncZmqNetworkClient.
+        """
         self.network = network
 
     def instrument(self, command_object: object, api_version: int) -> None:
@@ -107,7 +124,14 @@ class SmoothRPCClient:
 
 
 class SmoothRPCHost:
+    """Host for the RPC API."""
+
     def __init__(self, network: AsyncNetwork) -> None:
+        """
+        Create a RPC Host.
+
+        'network' is the carrier network, typically an AsyncZmqNetworkHost.
+        """
         self.network = network
         self.keep_serve_loop_running = True
 
@@ -115,16 +139,21 @@ class SmoothRPCHost:
 
     def register_commands(self, command_object: object) -> None:
         """Add all rpc-decorator marked functions in command_object to host command list."""
+        count = 0
         for _org_func_name, func_name, version_range, func in _iterate_functions(command_object):
             func_bound = partial(func, command_object)
             self.commands.setdefault(func_name, []).append((version_range, func_bound))
+            count += 1
+        if count == 0:
+            raise RpcDecoratorError("No decorated functions found")
+        _log.info("Registered {count} API endpoints")
 
     def shutdown_after_call(self) -> None:
-        """Stop processing commands, terminate 'serve_forever' after the next call."""
+        """Stop processing commands, terminate 'serve_forever' after the next (or current, if any) call."""
         _log.info("Shutting down")
         self.keep_serve_loop_running = False
 
-    async def _call_command(self, call_obj: ApiCall) -> Any:
+    async def _call_command(self, call_obj: ApiCall) -> object:
         _log.info("Received RPC call %s", call_obj)
 
         try:
@@ -146,6 +175,7 @@ class SmoothRPCHost:
         return out
 
     async def _host_one(self) -> None:
+        """Handle exactly one RPC call, receive/call/send."""
         try:
             call_obj = await self.network.recv_pyobj()
             if not isinstance(call_obj, ApiCall):
@@ -153,15 +183,16 @@ class SmoothRPCHost:
 
             out = await self._call_command(call_obj)
             await self.network.send_pyobj(out)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001, blind-catch exception
             _log.warning("Caught (and returning) exception", exc_info=exc)
             try:
                 await self.network.send_pyobj(exc)
-            except Exception as exc2:
+            except Exception as exc2:  # noqa: BLE001, blind-catch exception
                 _log.error("Exception during sending exception", exc_info=exc2)
                 await self.network.send_pyobj(RpcInternalError("Exception while returning exception"))
 
     async def host_forever(self) -> None:
+        """Keep handling RPC calls until terminated."""
         _log.info("Serving forever")
         while self.keep_serve_loop_running and self.network is not None:
             await self._host_one()

@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from SmoothRPC.network import AsyncZmqNetworkClient, AsyncZmqNetworkHost
+from smooth_rpc.network import AsyncZmqNetworkClient, AsyncZmqNetworkHost
 
 
 @pytest.mark.asyncio

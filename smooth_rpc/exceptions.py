@@ -1,3 +1,6 @@
+"""All exceptions throw from the SmoothRPC module."""
+
+
 class RpcError(Exception):
     """Base SmoothRPC exception."""
 

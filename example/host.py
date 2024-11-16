@@ -1,15 +1,18 @@
+"""SmoothRPC host example."""
+
 import asyncio
 import logging
 
-from example.commands import Commands
-from SmoothRPC import host_forever
+from example.commands import ExampleCommands
+from smooth_rpc import host_forever
 
 
 async def main() -> None:
+    """Host the example API on a unix socket."""
     address = "ipc:///tmp/aap"
 
-    commands = Commands()
-    await host_forever(address, commands)
+    command_instance = ExampleCommands()
+    await host_forever(address, command_instance)
 
 
 if __name__ == "__main__":
