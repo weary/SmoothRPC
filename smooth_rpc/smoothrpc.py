@@ -146,7 +146,7 @@ class SmoothRPCHost:
             count += 1
         if count == 0:
             raise RpcDecoratorError("No decorated functions found")
-        _log.info("Registered {count} API endpoints")
+        _log.info("Registered %d API endpoints", count)
 
     def shutdown_after_call(self) -> None:
         """Stop processing commands, terminate 'serve_forever' after the next (or current, if any) call."""

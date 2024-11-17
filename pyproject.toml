@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "SmoothRPC"
 version = "0.1.0"
-description = ""
+description = "Decorator-based RPC library based on asyncio and a ZeroMQ backend."
 authors = ["weary <wearyspam@weary.nl>"]
 readme = "README.md"
 keywords = ["zmq", "rpc"]

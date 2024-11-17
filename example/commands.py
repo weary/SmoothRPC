@@ -3,7 +3,7 @@
 import asyncio
 import logging
 
-from smooth_rpc.smoothrpc import api
+from smooth_rpc import api
 
 _log = logging.getLogger(__name__)
 
