@@ -14,7 +14,7 @@ __all__ = [
 ]
 
 
-async def host_forever(address: str, *commands: tuple[object, ...]) -> None:  # pragma: no cover
+async def host_forever(address: str, *commands: object) -> None:  # pragma: no cover
     """
     Listen on 'address and host all rpc-marked functions from commands.
 
@@ -27,7 +27,7 @@ async def host_forever(address: str, *commands: tuple[object, ...]) -> None:  # 
     await rpc.host_forever()
 
 
-def init_remote_rpc(address: str, *commands: tuple, api_version: int = 1) -> None:  # pragma: no cover
+def init_remote_rpc(address: str, *commands: object, api_version: int = 1) -> None:  # pragma: no cover
     """
     Replace all rpc-marked functions from commands with remote calls to address.
 
