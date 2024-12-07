@@ -1,22 +1,22 @@
 [tool.poetry]
 name = "SmoothRPC"
 version = "0.1.0"
-description = "Decorator-based RPC library based on asyncio and a ZeroMQ backend."
+description = "Decorator-based RPC library based on asyncio."
 authors = ["weary <wearyspam@weary.nl>"]
 readme = "README.md"
-keywords = ["zmq", "rpc"]
+keywords = ["asyncio", "rpc"]
 packages = [{ include = "smooth_rpc" }]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 ruff = "^0.7.3"
-pyzmq = "^26.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
 pytest-cov = "^6.0.0"
 pytest-asyncio = "^0.24.0"
+mypy = "^1.13.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -39,8 +39,10 @@ extend-ignore = [
     "EM101",
     "ERA001",
     "FA102",
+    "FIX001",
     "ISC001",
     "T201",
+    "TD",
     "TRY003",
 ]
 
@@ -58,6 +60,7 @@ extend-ignore = [
 
 [tool.pytest.ini_options]
 addopts = "--cov=smooth_rpc --cov-report html"
+asyncio_default_fixture_loop_scope="function"
 
 [tool.coverage.report]
 fail_under=100

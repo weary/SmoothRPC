@@ -2,9 +2,12 @@ Here's a README for the SmoothRPC project:
 
 # SmoothRPC
 
-Decorator-based RPC library based on asyncio and a ZeroMQ backend.
+Decorator-based RPC library based on asyncio.
 
 Works by replacing all decorated functions with remote function calls. Arguments and results are pickle'd. Host exceptions are re-thrown client-side.
+
+> [!WARNING]
+> SmoothRPC uses pickle to serialize objects. Do not use in untrusted environments.
 
 ## Installation
 
@@ -33,7 +36,7 @@ from smooth_rpc import host_forever
 # instance of your own API class. Instance stays in-memory, so can be used for context.
 api_commands = APICommands()
 
-# bind-address, anything ZMQ accepts
+# bind-address, start with 'ipc' for unix sockets or 'tcp'
 address = "tcp://127.0.0.1:5000"
 
 # SmoothRPC entrypoint:
@@ -49,13 +52,13 @@ await host_forever(address, api_commands)  # listen and handle RPC requests
 # instance of your own API class. Instance stays in-memory.
 api_commands = APICommands()
 
-# connect-address, anything ZMQ accepts
+# connect-address, same as host address
 address = "tcp://127.0.0.1:5000"
 
 # SmoothRPC entrypoint:
 # - Replace all 'rpc'-decorated functions in 'api_commands' with remote function calls.
-# - Open ZMQ connection to 'address'
-init_remote_rpc(address, api_commands)
+# - Open connection to 'address'
+await init_remote_rpc(address, api_commands)
 
 # Call the 'hello' function on the host, and store the result.
 out = await api_commands.hello("Alice")

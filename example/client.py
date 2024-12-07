@@ -11,7 +11,7 @@ async def main() -> None:
     """Use the example API."""
     address = "ipc:///tmp/aap"
     commands = ExampleCommands()
-    init_remote_rpc(address, commands, api_version=3)
+    await init_remote_rpc(address, commands, api_version=3)
 
     out = await commands.hello()
     print(f"commands.hello() returned {out!r}")

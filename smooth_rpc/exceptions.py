@@ -18,12 +18,24 @@ class RpcInvalidVersionError(RpcError):
 
 
 class RpcProtocolError(RpcError):
-    """Host received something unexpected."""
+    """Host or client received something unexpected."""
+
+
+class RpcSerializationError(RpcError):
+    """Cannot serialize(pickle) object."""
 
 
 class RpcInternalError(RpcError):
-    """Host caught an exception while serializing an exception."""
+    """Library failure, should not happen."""
 
 
 class RpcDecoratorError(RpcError):
-    """An rpc decorator was used on something that is not an async function."""
+    """The rpc decorator was used on something that is not an async function."""
+
+
+class RpcAddressError(RpcError):
+    """Unrecognized address."""
+
+
+class RpcMaxSizeExceededError(RpcError):
+    """Message size too big."""
