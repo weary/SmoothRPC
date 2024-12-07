@@ -22,6 +22,8 @@ jobs:
         uses: snok/install-poetry@v1
         with:
           version: 1.8.5
+      - name: Install poetry-dynamic-versioning
+        run: poetry self add "poetry-dynamic-versioning[plugin]"
       - name: Build project
         run: poetry build
       - name: Store the distribution packages
