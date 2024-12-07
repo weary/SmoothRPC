@@ -9,10 +9,37 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Release pushed tag
+  build_artefacts:
+    name: Build distribution
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.5
+      - name: Build project
+        run: poetry build
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  release:
+    name: Release pushed tag
+    needs: build_artefacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -21,4 +48,5 @@ jobs:
           gh release create "$tag" \
               --repo="$GITHUB_REPOSITORY" \
               --title="${tag#v}" \
-              --generate-notes
+              --generate-notes \
+              dist/*.whl
