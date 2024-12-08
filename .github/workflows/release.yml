@@ -70,7 +70,13 @@ jobs:
         with:
           name: python-package-distributions
           path: dist/
-
+      - name: Set up GPG
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "$GPG_PASSPHRASE" | gpg --armor --batch --pinentry-mode loopback --passphrase-fd 0 --sign dist/*.whl
       - name: Publish release distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
